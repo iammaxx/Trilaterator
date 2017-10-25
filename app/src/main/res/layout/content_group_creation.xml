@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/R1"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context=".GroupCreation"
+    tools:showIn="@layout/activity_group_creation"
+    android:orientation="vertical"
+    android:weightSum="1">
+
+    <android.support.design.widget.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="77dp">
+
+        <EditText
+            android:id="@+id/dname"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Device Name"
+            android:textAlignment="center" />
+
+    </android.support.design.widget.TextInputLayout>
+
+    <ScrollView
+        android:id="@+id/sv1"
+        android:layout_width="match_parent"
+        android:layout_height="305dp">
+
+        <LinearLayout
+            android:id="@+id/sv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/ref"
+            android:layout_width="432dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="ref"
+            android:text="Refresh"
+            android:textAlignment="center" />
+
+        <Button
+            android:id="@+id/submit"
+            android:layout_width="421dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="invite"
+            android:text="Join Group" />
+
+    </LinearLayout>
+
+</LinearLayout>

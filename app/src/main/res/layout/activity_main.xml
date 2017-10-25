@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/R2"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    android:orientation="vertical">
+
+    <ExpandableListView
+        android:id="@+id/el1"
+        android:layout_width="match_parent"
+        android:layout_height="333dp"
+        android:layout_alignBottom="@+id/addg"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="41dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/host"
+            android:layout_width="99dp"
+            android:onClick="host"
+            android:layout_height="wrap_content"
+            android:text="Host" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/ref"
+            android:layout_width="72dp"
+            android:layout_height="56dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginBottom="37dp"
+            android:layout_marginEnd="55dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:onClick="ref"
+            android:src="@android:drawable/ic_menu_rotate"
+            app:backgroundTint="@android:color/holo_blue_bright"
+            app:elevation="23dp"
+            app:fabSize="normal"
+            app:rippleColor="@android:color/transparent"
+            tools:layout_editor_absoluteX="279dp"
+            tools:layout_editor_absoluteY="417dp" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/addg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/ref"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:onClick="addgroup"
+            app:backgroundTint="@android:color/holo_blue_bright"
+            app:fabSize="normal"
+            app:srcCompat="@android:drawable/ic_input_add" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.wirelesssen.GroupSelect"
+    android:orientation="vertical">
+
+
+    <TextView
+        android:id="@+id/tx1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Rotation"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="11dp"
+        android:layout_alignTop="@+id/txt1"
+        android:layout_toStartOf="@+id/stop"
+        android:layout_marginEnd="12dp" />
+
+    <TextView
+        android:id="@+id/txt1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Steps"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_above="@+id/mypath"
+        android:layout_alignStart="@+id/mypath"
+        android:layout_marginStart="18dp"
+        android:layout_marginBottom="69dp" />
+
+    <Button
+        android:id="@+id/start"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/reset"
+        android:layout_alignBottom="@+id/reset"
+        android:layout_toStartOf="@+id/reset"
+        android:enabled="false"
+        android:onClick="start"
+        android:text="Start" />
+
+    <Button
+        android:id="@+id/stop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Stop"
+        android:onClick="stop"
+        android:layout_alignBaseline="@+id/reset"
+        android:layout_alignBottom="@+id/reset"
+        android:layout_alignParentEnd="true" />
+
+    <Button
+        android:id="@+id/reset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="22dp"
+        android:onClick="reset"
+        android:text="reset"
+        android:layout_alignParentBottom="true"
+        android:layout_toStartOf="@+id/stop" />
+
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Press Start to record"
+        android:layout_above="@+id/tx1"
+        android:layout_toEndOf="@+id/mypath" />
+
+    <Button
+        android:id="@+id/step"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="step"
+        android:onClick="add"
+        android:layout_alignBaseline="@+id/start"
+        android:layout_alignBottom="@+id/start"
+        android:layout_toStartOf="@+id/start" />
+
+    <TextView
+        android:id="@+id/mypath"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="mypath"
+        android:layout_above="@+id/step"
+        android:layout_toStartOf="@+id/start"
+        android:layout_marginEnd="11dp" />
+
+    <TextView
+        android:id="@+id/path"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/mypath"
+        android:layout_toEndOf="@+id/tx1"
+        android:text="path" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:srcCompat="@drawable/map"
+        android:layout_above="@+id/status"
+        android:layout_marginBottom="141dp"
+        android:layout_alignParentEnd="true" />
+
+    <TextView
+        android:id="@+id/deg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/mypath"
+        android:layout_marginStart="22dp"
+        android:layout_toEndOf="@+id/txt1"
+        android:text="TextView" />
+</RelativeLayout>
