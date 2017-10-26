@@ -37,7 +37,6 @@ import java.util.List;
 
 public class GroupSelect extends AppCompatActivity {
     TextView tx,txt1,st;
-    boolean type;
     private TextView mypath;
     private TextView path;
     static HashMap<String, String> macip;
@@ -89,7 +88,8 @@ public class GroupSelect extends AppCompatActivity {
         txt1=(TextView)findViewById(R.id.txt1);
         st=(TextView)findViewById(R.id.status);
         degree = (TextView) findViewById(R.id.deg);
-        type=getIntent().getBooleanExtra("SEN",false);
+        if(getIntent().getBooleanExtra("SEN",false))
+            u=1;
         mypath=(TextView)findViewById(R.id.mypath);
         path=(TextView)findViewById(R.id.path);
 
@@ -166,9 +166,8 @@ public class GroupSelect extends AppCompatActivity {
     Thread t;
     void start(View view)
     {
-        u=1;
         st.setText("**Recording**");
-               if(type)//TODO                           HOST
+               if(u==1)//TODO                           HOST
         {
                         myhandler hand = new myhandler(this);
                         receive=new getrssi(4555,hand,0);
@@ -210,7 +209,7 @@ public class GroupSelect extends AppCompatActivity {
 
         @Override
         public void handleMessage(Message msg) {
-            if(type){
+            if(u==1){
             DatagramPacket packet = (DatagramPacket) msg.obj;
         //    switch(msg.what){
          //       case 0 :
@@ -223,9 +222,7 @@ public class GroupSelect extends AppCompatActivity {
             if(ipcons.size()>=3)
             //String address=packet.getAddress().toString();
             {
-
                 constraint[] c=ipcons.values().toArray(new constraint[ipcons.values().size()]);
-
                 int len=ipcons.size();
                 parent.canvas = new Canvas(parent.mutableBitmap);
                 int p=0;
@@ -357,9 +354,12 @@ public class GroupSelect extends AppCompatActivity {
         public void onReceive(final Context context, Intent intent) {
             // TODO: This method is called when the BroadcastReceiver is receiving
 //            Toast.makeText(context, "Scanned", Toast.LENGTH_SHORT).show();
-            if(u==1){
+            //Toast.makeText(context, "Scan Complete", Toast.LENGTH_SHORT).show();
+            if(u==0){
+
             String ssi;
                 RSSI=0;
+               // Toast.makeText(context, "OMG", Toast.LENGTH_SHORT).show();
             wifiList = wMan.getScanResults();
             for (int i = 0; i < wifiList.size(); i++) {
               ssi=  wifiList.get(i).SSID;
@@ -384,7 +384,10 @@ public class GroupSelect extends AppCompatActivity {
                 };
                 t.start();
             }
-        }}
+        }
+        else
+                Toast.makeText(context, "Failure", Toast.LENGTH_SHORT).show();
+        }
     }
     class constraint
     {
