@@ -33,6 +33,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.DatagramPacket;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 public class GroupSelect extends AppCompatActivity {
@@ -45,7 +46,7 @@ public class GroupSelect extends AppCompatActivity {
     String distances[][];
     Bitmap mutableBitmap;
     Bitmap workingBitmap;
-    Paint[] paint = new Paint[4];
+    Paint[] paint = new Paint[5];
     float x,y;
     float a,b;
     double theta;
@@ -80,7 +81,8 @@ public class GroupSelect extends AppCompatActivity {
         ipdist=new HashMap<String, String[]>();
         x=0;
         y=0;
-        for (int i=0;i<4;i++){
+        for (int i=0;i<5;i++){
+
             paint[i] = new Paint();
         }
         bx=(Button)findViewById(R.id.start);
@@ -110,6 +112,9 @@ public class GroupSelect extends AppCompatActivity {
         paint[2].setColor(Color.YELLOW);
         paint[3].setAntiAlias(true);
         paint[3].setColor(Color.BLACK);
+        paint[4].setAntiAlias(true);
+        paint[4].setColor(Color.MAGENTA);
+
         workingBitmap = Bitmap.createBitmap(bitmap);
         mutableBitmap = workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
@@ -175,6 +180,9 @@ public class GroupSelect extends AppCompatActivity {
         }
         else//TODO                         NODE
         {
+            myhandler hand = new myhandler(this);
+            receive=new getrssi(4555,hand,0);
+            receive.start();
             wMan = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
             GroupSelect.wifiReceiver wifiReciever = new GroupSelect.wifiReceiver();
@@ -209,6 +217,15 @@ public class GroupSelect extends AppCompatActivity {
 
         @Override
         public void handleMessage(Message msg) {
+            if(u==1)
+
+                Log.d("Monitor:","HOST");
+            else
+                Log.d("Monitor:","NODE");
+            byte[] rcvx=((DatagramPacket)msg.obj).getData();
+            //Constructor
+            String msg1=new String(rcvx);
+            Log.d("Data Received :",msg1);
             if(u==1){
             DatagramPacket packet = (DatagramPacket) msg.obj;
         //    switch(msg.what){
@@ -307,21 +324,42 @@ public class GroupSelect extends AppCompatActivity {
                 System.out.println(avg_x + " " + avg_y);
 
                 System.out.println(" radius : " +radius);
-                t = new Thread() {
+            Thread    tx = new Thread() {
                     @Override
                     public void run() {
+                        Iterator o=macip.keySet().iterator();
+                        while(o.hasNext()){
                         try {
-                            UdpClientThread send = new UdpClientThread((String.valueOf(avg_x)+"_"+String.valueOf(avg_y)).getBytes(), "192.168.43.1", 4555);
+
+                            Log.d("Monitor:","DataSent:"+(String.valueOf(avg_x)+"_"+String.valueOf(avg_y)));
+                            String qw=o.next().toString();
+                            Log.d("Receiver IP:",qw);
+                            UdpClientThread send = new UdpClientThread((String.valueOf(avg_x)+"_"+String.valueOf(avg_y)).getBytes(),qw, 4555);
                             send.start();
                             //Toast.makeText(context, "Data Sent", Toast.LENGTH_SHORT).show();
                         } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                    }
+                    }}
                 };
-                t.start();
+                tx.start();
+                Log.d("Monitor:","After Transmission");
                 parent.a =(float) avg_x;
                 parent.b =(float) avg_y;
+                parent.canvas = new Canvas(parent.mutableBitmap);
                 parent.canvas.drawCircle(parent.a * 10, parent.b * 10, 15, parent.paint[0]);
+                int h=1;
+                constraint z;
+                Iterator<constraint> d=ipcons.values().iterator();
+                while(d.hasNext())
+                {
+                    z=d.next();
+
+                    parent.canvas.drawCircle(new Float(z.xi * 10),new Float( z.yi * 10), 15, parent.paint[h]);
+                    h++;
+                }
+
+
                 parent.imageView.setAdjustViewBounds(true);
                 parent.imageView.setImageBitmap(parent.mutableBitmap);
                 parent.mutableBitmap = parent.workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
@@ -334,14 +372,14 @@ public class GroupSelect extends AppCompatActivity {
                 //    switch(msg.what){
                 //       case 0 :
                 String invite=new String(packet.getData());
-                //String address=packet.getAddress().toString();
                 String x[]=invite.split("_");
-
-
+                Log.d("NODE:","Packet Received from host "+x);
+                //String address=packet.getAddress().toString();
                 parent.a =(float) Float.parseFloat(x[0]);
                 parent.b =(float) Float.parseFloat(x[1]);
-                parent.canvas.drawCircle(parent.a * 10, parent.b * 10, 15, parent.paint[0]);
-                parent.canvas.drawCircle(parent.ix * 10, parent.iy * 10, 15, parent.paint[1]);
+                parent.canvas = new Canvas(parent.mutableBitmap);
+                parent.canvas.drawCircle(parent.a * 10, parent.b * 10, 15, parent.paint[1]);
+                parent.canvas.drawCircle(parent.ix * 10, parent.iy * 10, 15, parent.paint[0]);
                 parent.imageView.setAdjustViewBounds(true);
                 parent.imageView.setImageBitmap(parent.mutableBitmap);
                 parent.mutableBitmap = parent.workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
@@ -362,10 +400,11 @@ public class GroupSelect extends AppCompatActivity {
                // Toast.makeText(context, "OMG", Toast.LENGTH_SHORT).show();
             wifiList = wMan.getScanResults();
             for (int i = 0; i < wifiList.size(); i++) {
-              ssi=  wifiList.get(i).SSID;
+                ssi = wifiList.get(i).SSID;
                 if (ssi.equals("HelloMoto"))
                     RSSI = -wifiList.get(i).level;
                 //TODO x,y
+            }
                 constraint c=new constraint();
                 c.set(x,y,RSSI);
                 //Toast.makeText(context, "X:"+x+"\nY:"+y+"\nR:"+RSSI, Toast.LENGTH_SHORT).show();
@@ -383,10 +422,8 @@ public class GroupSelect extends AppCompatActivity {
                     }
                 };
                 t.start();
-            }
+
         }
-        else
-                Toast.makeText(context, "Failure", Toast.LENGTH_SHORT).show();
         }
     }
     class constraint
