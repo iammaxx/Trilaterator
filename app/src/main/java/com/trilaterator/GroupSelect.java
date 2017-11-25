@@ -1,5 +1,6 @@
 package com.trilaterator;
 
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +11,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -22,21 +24,18 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-public class GroupSelect extends AppCompatActivity {
+import static com.trilaterator.GroupCreation.isConnected;
+
+public class GroupSelect extends AppCompatActivity implements Serializable {
+
+    private static final String TAG = "omg";
     TextView tx,txt1,st;
     private TextView mypath;
     private TextView path;
@@ -45,6 +44,7 @@ public class GroupSelect extends AppCompatActivity {
     HashMap<String, String> iphost;
     String distances[][];
     Bitmap mutableBitmap;
+    HashMap<String,WifiConfiguration> wicon;
     Bitmap workingBitmap;
     Paint[] paint = new Paint[5];
     float x,y;
@@ -59,32 +59,112 @@ public class GroupSelect extends AppCompatActivity {
     ImageView imageView;
     Button bx;
     HashMap<String,String[]>ipdist;
+    HashMap<String,constraint>namecons;
+    Thread      chcon=new Thread(new Runnable() {
+        @Override
+        public void run() {
+            while(true){
+            if(isConnected(GroupSelect.this))
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            else{
+                //todo RECONNECT WIFI
+                //tiosnfsd
+                //sdafsadfsda
+                while(!wMan.isWifiEnabled()){
+                    try {
+
+
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                Log.d("NETPROB","trying to reconnect with "+hotrack[track_h]);
+                WifiConfiguration conf;
+                    conf = new WifiConfiguration();
+                    conf.SSID = "\"" + namelist.get(track_h) + "\"";
+                    conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+                    wMan.addNetwork(conf);
+                List<WifiConfiguration> list = wMan.getConfiguredNetworks();
+                for( WifiConfiguration i : list ) {
+                    if(i.SSID != null && i.SSID.equals("\"" + namelist.get(track_h) + "\"")) {
+                        wMan.disconnect();
+                        wMan.enableNetwork(i.networkId, true);
+                        wMan.reconnect();
+                        break;
+                    }
+                }
+               try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                   e.printStackTrace();
+                }
+                while(!isConnected(getApplicationContext()))
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                UdpClientThread send = new UdpClientThread(("IPUPDATE_"+dName).getBytes(),"192.168.43.1", 4555);
+                send.start();
+            }}
+        }
+
+    });
     private Double temp=0.0;
     private double chng;
     private double deg;
     WifiManager wMan;
     List<ScanResult> wifiList;
     private long RSSI;
-
+    GroupSelect.wifiReceiver Wrec;
 
     static HashMap<String,constraint> ipcons = new HashMap<>();
+    static HashMap<String,String> nameip = new HashMap<>();
+    static HashMap<String,String> ipname = new HashMap<>();
     private int u=0;
-
+    private String dName;
+    private WifiConfiguration netConfig;
+    private String SSID;
+    private String[] hotrack;
+    int track_h=0;
+    Thread chkcon;
+    private List<String> namelist;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_group_select);
+        wicon=new HashMap<>();
+        wMan = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        dName=getIntent().getStringExtra("Name");
+        nameip=(HashMap<String, String>) getIntent().getExtras().getSerializable("nameip");
+        ipname=(HashMap<String, String>) getIntent().getExtras().getSerializable("ipname");
+        ipname=(HashMap<String, String>) getIntent().getExtras().getSerializable("ipname");
+        Log.d(TAG,ipname.toString());
+        namelist=(List<String>) getIntent().getExtras().getSerializable("namelist");
+
+        Log.d("FinalHash:",nameip.toString());
+        Log.d("FinalHash:",ipname.toString());
+        hotrack= (String[]) namelist.toArray(new String[namelist.size()]);
         macip = (HashMap<String, String>) getIntent().getExtras().getSerializable("macip");
         hostip=(HashMap<String, String>) getIntent().getExtras().getSerializable("hostip");
         iphost =(HashMap<String, String>) getIntent().getExtras().getSerializable("iphost");
         ipdist=new HashMap<String, String[]>();
+        namecons=new HashMap<String,constraint>();
+        addnetworkconfig();
         x=0;
         y=0;
         for (int i=0;i<5;i++){
 
             paint[i] = new Paint();
         }
+
         bx=(Button)findViewById(R.id.start);
         tx=(TextView)findViewById(R.id.tx1);
         txt1=(TextView)findViewById(R.id.txt1);
@@ -141,7 +221,7 @@ public class GroupSelect extends AppCompatActivity {
                     //  Toast.makeText(getApplicationContext(),"else",Toast.LENGTH_SHORT).show();
                     fx = event.getX();
                     fy = event.getY();
-                    Toast.makeText(GroupSelect.this, "x value"+fx+"y value"+fy, Toast.LENGTH_SHORT).show();
+                   // Toast.makeText(GroupSelect.this, "x value"+fx+"y value"+fy, Toast.LENGTH_SHORT).show();
                     canvas.drawCircle(fx, fy, 25, paint[0]);
                     cnt--;
 
@@ -167,34 +247,108 @@ public class GroupSelect extends AppCompatActivity {
         });
 
     }
+
+    private void addnetworkconfig() {
+        //TODO               ADD HOTSPOT INFO
+        WifiConfiguration conf;
+        Iterator it=nameip.keySet().iterator();
+        while(it.hasNext()) {
+            String id1 =(String) it.next();
+             conf = new WifiConfiguration();
+            conf.SSID = "\"" + id1 + "\"";
+            conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+            wMan.addNetwork(conf);
+            wicon.put(id1,conf);
+        }
+        Log.d("WiConList",wicon.values().toString());
+    }
+
+    //TODO         CHANGE TYPE OF NODE
+    void chtype(View view) throws InterruptedException {
+        track_h++;
+        if(u==1){
+            u=0;
+            wMan.setWifiEnabled(true);
+            ProgressDialog p = new ProgressDialog(this);
+            p.setMessage("Connection Lost ....Enabling Wifi !");
+            p.show();
+            while(!wMan.isWifiEnabled()){
+                Thread.sleep(300);
+            }
+            p.dismiss();
+            start(findViewById(R.id.addg));
+
+        }
+        else{
+            u=1;
+            try {
+                chcon.stop();
+                unregisterReceiver(Wrec);
+            }catch (Exception e){}
+                Thread t = new Thread() {
+                @Override
+                public void run() {
+                    wMan.setWifiEnabled(false);
+                    netConfig = new WifiConfiguration();
+                   // netConfig.SSID = dName;
+
+                    netConfig.SSID=dName;
+                    netConfig.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
+                    netConfig.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+                    netConfig.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
+                    netConfig.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+
+                    try {
+                        Method setWifiApMethod = wMan.getClass().getMethod("setWifiApEnabled", WifiConfiguration.class, boolean.class);
+                        boolean apstatus = (Boolean) setWifiApMethod.invoke(wMan, netConfig, true);
+
+                        Method isWifiApEnabledmethod = wMan.getClass().getMethod("isWifiApEnabled");
+                        while (!(Boolean) isWifiApEnabledmethod.invoke(wMan)) {
+                        }
+                        ;
+                        Method getWifiApStateMethod = wMan.getClass().getMethod("getWifiApState");
+                        int apstate = (Integer) getWifiApStateMethod.invoke(wMan);
+                        Method getWifiApConfigurationMethod = wMan.getClass().getMethod("getWifiApConfiguration");
+                        netConfig = (WifiConfiguration) getWifiApConfigurationMethod.invoke(wMan);
+                        Log.e("CLIENT", "\nSSID:" + netConfig.SSID + "\nPassword:" + netConfig.preSharedKey + "\n");
+                    } catch (Exception e) {
+                        Log.e(this.getClass().toString(), "", e);
+                    }
+                }
+            };
+            t.start();
+
+            start(findViewById(R.id.addg));
+        }
+
+
+    }
     getrssi receive;
     Thread t;
-    void start(View view)
-    {
-        st.setText("**Recording**");
-               if(u==1)//TODO                           HOST
-        {
-                        myhandler hand = new myhandler(this);
-                        receive=new getrssi(4555,hand,0);
-                        receive.start();
-        }
-        else//TODO                         NODE
-        {
+    void start(View view) throws InterruptedException {
+        bx.setEnabled(false);
+        if(receive==null) {
             myhandler hand = new myhandler(this);
-            receive=new getrssi(4555,hand,0);
+            receive = new getrssi(4555, hand, 0);
             receive.start();
-            wMan = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        }
+        if(u==0)//TODO      CONFIGURE NODE
+        {
 
-            GroupSelect.wifiReceiver wifiReciever = new GroupSelect.wifiReceiver();
-            registerReceiver(wifiReciever, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-            Thread x;
+            Toast.makeText(this, "Node Initialisation", Toast.LENGTH_SHORT).show();
+            wMan = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            Wrec = new GroupSelect.wifiReceiver();
+            registerReceiver(Wrec, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+            chcon.start();
+            ProgressDialog p = new ProgressDialog(this);
+                        Thread x;
             x = new Thread() {
                 @Override
                 public void run() {
                     try {
                         while (true) {
                             wMan.startScan();
-                            Thread.sleep(5000);
+                            Thread.sleep(1500);
                         }
                     } catch (Exception e) {
                     }
@@ -204,9 +358,10 @@ public class GroupSelect extends AppCompatActivity {
 
         }
 
-    }
+                }
+
     private static constraint c1;
-    public class myhandler extends Handler {
+    public class myhandler extends Handler implements Serializable{
         private GroupSelect parent;
         double avg_x,avg_y;
 
@@ -217,12 +372,7 @@ public class GroupSelect extends AppCompatActivity {
 
         @Override
         public void handleMessage(Message msg) {
-            if(u==1)
-
-                Log.d("Monitor:","HOST");
-            else
-                Log.d("Monitor:","NODE");
-            byte[] rcvx=((DatagramPacket)msg.obj).getData();
+                byte[] rcvx=((DatagramPacket)msg.obj).getData();
             //Constructor
             String msg1=new String(rcvx);
             Log.d("Data Received :",msg1);
@@ -235,12 +385,14 @@ public class GroupSelect extends AppCompatActivity {
             //Constructor
             c1=new constraint(rcvmsg);
             ipcons.put(packet.getAddress().toString(),c1);
-            Log.d("TABLE:",ipcons.toString());
-            if(ipcons.size()>=3)
+
+                namecons.put(ipname.get(packet.getAddress().toString()),c1);
+            Log.d("TABLE:",namecons.toString());
+            if(namecons.size()>=3)
             //String address=packet.getAddress().toString();
             {
-                constraint[] c=ipcons.values().toArray(new constraint[ipcons.values().size()]);
-                int len=ipcons.size();
+                constraint[] c=namecons.values().toArray(new constraint[namecons.values().size()]);
+                int len=namecons.size();
                 parent.canvas = new Canvas(parent.mutableBitmap);
                 int p=0;
 
@@ -327,7 +479,7 @@ public class GroupSelect extends AppCompatActivity {
             Thread    tx = new Thread() {
                     @Override
                     public void run() {
-                        Iterator o=macip.keySet().iterator();
+                        Iterator o=nameip.keySet().iterator();
                         while(o.hasNext()){
                         try {
 
@@ -346,11 +498,13 @@ public class GroupSelect extends AppCompatActivity {
                 Log.d("Monitor:","After Transmission");
                 parent.a =(float) avg_x;
                 parent.b =(float) avg_y;
+                parent.x=(float) avg_x;
+                parent.y=(float) avg_y;
                 parent.canvas = new Canvas(parent.mutableBitmap);
                 parent.canvas.drawCircle(parent.a * 10, parent.b * 10, 15, parent.paint[0]);
                 int h=1;
                 constraint z;
-                Iterator<constraint> d=ipcons.values().iterator();
+                Iterator<constraint> d=namecons.values().iterator();
                 while(d.hasNext())
                 {
                     z=d.next();
@@ -358,11 +512,20 @@ public class GroupSelect extends AppCompatActivity {
                     parent.canvas.drawCircle(new Float(z.xi * 10),new Float( z.yi * 10), 15, parent.paint[h]);
                     h++;
                 }
-
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
                 parent.imageView.setAdjustViewBounds(true);
                 parent.imageView.setImageBitmap(parent.mutableBitmap);
                 parent.mutableBitmap = parent.workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
+                try {
+                    chtype(findViewById(R.id.addg));
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 
             }
@@ -371,8 +534,15 @@ public class GroupSelect extends AppCompatActivity {
                 DatagramPacket packet = (DatagramPacket) msg.obj;
                 //    switch(msg.what){
                 //       case 0 :
+
+
+
                 String invite=new String(packet.getData());
                 String x[]=invite.split("_");
+                if(x[0].equals("IPUPDATE"))
+                {
+                ipname.put(packet.getAddress().toString(),x[1]);
+                }else{
                 Log.d("NODE:","Packet Received from host "+x);
                 //String address=packet.getAddress().toString();
                 parent.a =(float) Float.parseFloat(x[0]);
@@ -383,10 +553,22 @@ public class GroupSelect extends AppCompatActivity {
                 parent.imageView.setAdjustViewBounds(true);
                 parent.imageView.setImageBitmap(parent.mutableBitmap);
                 parent.mutableBitmap = parent.workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
+                track_h++;
+                wMan.disconnect();
+                Toast.makeText(parent, "Next node :"+namelist.get(track_h), Toast.LENGTH_SHORT).show();
+                if(track_h==namelist.size())
+                    track_h=0;
+                if(namelist.get(track_h).equals(dName))
+                    try {
+                        Toast.makeText(parent, "TypeChanger", Toast.LENGTH_SHORT).show();
+                        chtype(findViewById(R.id.deg));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
             }
+        }}
         }
-        }
-    class wifiReceiver extends BroadcastReceiver {
+    class wifiReceiver extends BroadcastReceiver implements Serializable {
 
         @Override
         public void onReceive(final Context context, Intent intent) {
@@ -401,10 +583,11 @@ public class GroupSelect extends AppCompatActivity {
             wifiList = wMan.getScanResults();
             for (int i = 0; i < wifiList.size(); i++) {
                 ssi = wifiList.get(i).SSID;
-                if (ssi.equals("HelloMoto"))
+                if (ssi.equals(namelist.get(track_h)))
                     RSSI = -wifiList.get(i).level;
                 //TODO x,y
             }
+            Log.d("Broadcast "+"receiver","RSSI OF "+namelist.get(track_h)+"is"+RSSI);
                 constraint c=new constraint();
                 c.set(x,y,RSSI);
                 //Toast.makeText(context, "X:"+x+"\nY:"+y+"\nR:"+RSSI, Toast.LENGTH_SHORT).show();
@@ -416,8 +599,8 @@ public class GroupSelect extends AppCompatActivity {
                         try {
                                 UdpClientThread send = new UdpClientThread(finalMsg, "192.168.43.1", 4555);
                                 send.start();
-                            //Toast.makeText(context, "Data Sent", Toast.LENGTH_SHORT).show();
                         } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                 };
@@ -426,7 +609,7 @@ public class GroupSelect extends AppCompatActivity {
         }
         }
     }
-    class constraint
+    class constraint implements Serializable
     {
         byte[] convert_str()
         {
@@ -596,20 +779,13 @@ public class GroupSelect extends AppCompatActivity {
             y1=yt-(h*(c2.xi-c1.xi))/d;
             x2=xt-(h*(c2.yi-c1.yi))/d;
             y2=yt+(h*(c2.xi-c1.xi))/d;
-
             //System.out.println(" first point " + x1 + " " + y1);
             // System.out.println(" second point " + x2 + " " + y2);
-
         }
-
         arr[p][0]=x1;
         arr[p][1]=y1;
         arr[p][2]=x2;
         arr[p][3]=y2;
-
-
     }
-
-
 }
 

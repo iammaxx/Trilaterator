@@ -44,6 +44,7 @@ public class UdpServerThread extends Thread{
                 byte[] buf = new byte[256];
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
                 socket.receive(packet);     //this code block the program flow
+
                 InetAddress address = packet.getAddress();
                 int port = packet.getPort();
                 String[] ob=new String[10];

@@ -21,9 +21,9 @@ import android.view.View;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashMap;
 import java.util.List;
 
@@ -91,10 +91,10 @@ public class MainActivity extends AppCompatActivity {
         ref(view);
 
         Bundle b = new Bundle();
-        b.putSerializable("macrssi",macrssi);
         b.putSerializable("wifiList", (Serializable) wifiList);
 
         Intent in = new Intent(this,GroupCreation.class);
+        b.putSerializable("macrssi",macrssi);
         in.putExtras(b);
         startActivity(in);
     }

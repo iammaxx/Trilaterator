@@ -16,6 +16,7 @@ import android.os.Message;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.ExpandableListView;
 import android.widget.LinearLayout;
@@ -24,12 +25,20 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.DatagramPacket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashMap;
 import java.util.List;
 
-public class GroupCreation extends AppCompatActivity {
+
+public class GroupCreation extends AppCompatActivity implements Serializable {
     FloatingActionButton fab;
     WifiManager wMan;
     HashMap<String, Integer> macrssi;
@@ -41,7 +50,7 @@ public class GroupCreation extends AppCompatActivity {
     HashMap<String, List<String>> listDataChild;
     private RadioGroup g1;
     private TextView dname;
-
+    List<String> namelist;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,6 +61,10 @@ public class GroupCreation extends AppCompatActivity {
         GroupCreation.wifiReceiver wifiReciever = new GroupCreation.wifiReceiver();
         registerReceiver(wifiReciever, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
         sv=(LinearLayout) findViewById(R.id.sv);
+        if(getIntent().getExtras().getSerializable("macrssi") instanceof HashMap)
+            Log.d("hello","Hashmap");
+        if(getIntent().getExtras().getSerializable("macrssi") instanceof HashMap)
+            Log.d("hello","HashMap");
 
         macrssi=(HashMap<String, Integer>) getIntent().getExtras().getSerializable("macrssi");
         wifiList=(List<ScanResult>)getIntent().getExtras().getSerializable("wifiList");
@@ -82,7 +95,7 @@ public class GroupCreation extends AppCompatActivity {
        String info= radioButton.getText().toString();
         String[] x=info.split("\n");
         String SSID=x[1];
-        Toast.makeText(this,SSID, Toast.LENGTH_SHORT).show();
+       // Toast.makeText(this,SSID, Toast.LENGTH_SHORT).show();
         WifiConfiguration conf = new WifiConfiguration();
         conf.SSID = "\"" + SSID + "\"";
         conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
@@ -139,7 +152,7 @@ public class GroupCreation extends AppCompatActivity {
         wMan.startScan();
 
     }
-    class wifiReceiver extends BroadcastReceiver {
+    class wifiReceiver extends BroadcastReceiver implements Serializable {
 
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -162,9 +175,14 @@ public class GroupCreation extends AppCompatActivity {
             init();
         }
     }
+    private static HashMap<String, String> nameip;
+    private static HashMap<String, String> ipname;
 
-    public static class myhandler extends Handler {
+    public static class myhandler extends Handler implements Serializable {
         private GroupCreation parent;
+        private int ct=0;
+        private int dsa=0;
+
 
         public myhandler(GroupCreation parent) {
             super();
@@ -174,23 +192,68 @@ public class GroupCreation extends AppCompatActivity {
         @Override
         public void handleMessage(Message msg) {
             DatagramPacket packet= (DatagramPacket) msg.obj;
-            String invite=new String(packet.getData());
+        int io=0;
+                Object m = null;
+                try {
+                    m = parent.deserialize(packet.getData());
+                    if(m instanceof ArrayList)
+                        parent.namelist=(ArrayList)m;
+                    else if (parent.nameip == null)
+                        parent.nameip = (HashMap<String, String>) m;
+                    else
+                        parent.ipname = (HashMap<String, String>) m;
+                    io = 1;
+                    if (ipname != null)
+                        Log.d("RECEIVED HashMap :", ipname.toString());
+                    if(nameip!=null &&ipname!=null)
+                    {   Intent in = new Intent(parent, GroupSelect.class);
+                    Bundle b = new Bundle();
+                    in.putExtra("SEN", false);
+                    in.putExtra("Name", parent.dname.getText().toString());
+                    b.putSerializable("nameip", parent.nameip);
+                    b.putSerializable("ipname", parent.ipname);
+                        b.putSerializable("namelist", (Serializable) parent.namelist);
+                    in.putExtras(b);
+                    parent.startActivity(in);
+                }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+        if(io==0){
+                String invite=new String(packet.getData());
             String address=packet.getAddress().toString();
             String x[]=invite.split("_");
-            switch (msg.what){
-                case 1 :
-            if(x[1].equals("ACCEPT"))
-                Toast.makeText(parent, "Invitation Accepted !", Toast.LENGTH_SHORT).show();
-                else if(x[1].equals("REJECT"))
-                Toast.makeText(parent, "Invitation Rejected !", Toast.LENGTH_SHORT).show();
-                else  if(x[1].equals("START"))
-                    {
-                        Intent in = new Intent(parent,GroupSelect.class);
-                        in.putExtra("SEN",false);
-                        parent.startActivity(in);
+            switch (msg.what) {
+                case 1:
+                    if (x[1].equals("ACCEPT")) {
+                        Toast.makeText(parent, "Invitation Accepted !", Toast.LENGTH_SHORT).show();
+                    dsa++;
                     }
-            }
+                        else if (x[1].equals("REJECT"))
+                        Toast.makeText(parent, "Invitation Rejected !", Toast.LENGTH_SHORT).show();
+
+            }}
     }}
+    public static byte[] serialize(Object obj) throws IOException {
+
+        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+            try(ObjectOutputStream o = new ObjectOutputStream(b)){
+                o.writeObject(obj);
+
+            }
+            return b.toByteArray();
+        }
+    }
+
+    public static Object deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
+        try(ByteArrayInputStream b = new ByteArrayInputStream(bytes)){
+            try(ObjectInputStream o = new ObjectInputStream(b)){
+                return o.readObject();
+            }
+        }
+    }
 
 
 }

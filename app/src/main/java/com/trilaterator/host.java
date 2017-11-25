@@ -22,16 +22,21 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class host extends AppCompatActivity {
+public class host extends AppCompatActivity implements Serializable {
 
     private WifiConfiguration netConfig;
     private WifiManager wifiManager;
@@ -50,6 +55,12 @@ public class host extends AppCompatActivity {
     HashMap<String, String> macip;
     ExpandableListAdapter listAdapter;
     ExpandableListView expListView;
+    HashMap<String,String> nameip=new HashMap<>();
+    private UdpClientThread send1;
+    private UdpClientThread send2;
+    List<String> namelist=new ArrayList<>();
+
+    private HashMap<String, String> ipname=new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,8 +81,12 @@ public class host extends AppCompatActivity {
         t1=(ToggleButton)findViewById(R.id.toggleButton);
         SSID=(TextView)findViewById(R.id.SSID);
         nodes=new ArrayList<>();
+
     }
     void turnon(View view) {
+        nameip.put(SSID.getText().toString(),"192.168.43.1");
+        ipname.put("192.168.43.1",SSID.getText().toString());
+        namelist.add(SSID.getText().toString());
         p1=new ProgressDialog(this);
         p1.setMessage("Please Wait ...\nTurning on Personal Hotspot");
         p1.show();
@@ -196,7 +211,9 @@ private void deliver(final String Message,  String addr)
                     listDataHeader.add(Message);
                   info.add(finalAddress);
                     info.add(macip.get(finalAddress));
-
+                    nameip.put(Message,address);
+                    ipname.put(address,Message);
+                    namelist.add(Message);
                     listDataChild.put(listDataHeader.get(listDataHeader.size()-1), info);
                     listAdapter = new ExpandableListAdapter(host.this, listDataHeader, listDataChild);
                     expListView.setAdapter(listAdapter);
@@ -215,7 +232,7 @@ private void deliver(final String Message,  String addr)
     //textResult.setText(Message);
 
 }
-    public static class myhandler extends Handler {
+    public static class myhandler extends Handler implements Serializable {
         private host parent;
 
         public myhandler(host parent) {
@@ -241,11 +258,30 @@ private void deliver(final String Message,  String addr)
 
 
     }}
-void start(View view){
+void start(View view) throws InterruptedException {
     UdpClientThread send;
     String[] ips=macip.keySet().toArray(new String[macip.size()]);
     for(int i=0;i<macip.size();i++)
     {
+        try {
+            send1=new UdpClientThread(serialize(namelist),ips[i],4445);
+            send1.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            send1=new UdpClientThread(serialize(nameip),ips[i],4445);
+            send1.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            send2=new UdpClientThread(serialize(ipname),ips[i],4445);
+            send2.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         send=new UdpClientThread("_START_".getBytes(),ips[i],4445);
         send.start();
     }
@@ -253,11 +289,32 @@ void start(View view){
     in.putExtra("SEN",true);
     Bundle b = new Bundle();
     b.putSerializable("macip",macip);
+    b.putSerializable("nameip",nameip);
+    b.putSerializable("ipname",ipname);
+    b.putSerializable("namelist", (Serializable) namelist);
+    in.putExtra("Name",SSID.getText().toString());
     in.putExtras(b);
     startActivity(in);
-    Toast.makeText(this, "Localise", Toast.LENGTH_SHORT).show();
+   // Toast.makeText(this, "Localise", Toast.LENGTH_SHORT).show();
 
 
 }
+
+    public  byte[] serialize(Object obj) throws IOException {
+        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+            try(ObjectOutputStream o = new ObjectOutputStream(b)){
+                o.writeObject(obj);
+            }
+            return b.toByteArray();
+        }
+    }
+
+    public  Object deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
+        try(ByteArrayInputStream b = new ByteArrayInputStream(bytes)){
+            try(ObjectInputStream o = new ObjectInputStream(b)){
+                return o.readObject();
+            }
+        }
+    }
 }
 

@@ -51,19 +51,20 @@
         android:id="@+id/stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Stop"
-        android:onClick="stop"
         android:layout_alignBaseline="@+id/reset"
         android:layout_alignBottom="@+id/reset"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentEnd="true"
+        android:enabled="false"
+        android:onClick="stop"
+        android:text="Stop" />
 
     <Button
         android:id="@+id/reset"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="22dp"
-        android:onClick="reset"
-        android:text="reset"
+        android:onClick="chtype"
+        android:text="Convert"
         android:layout_alignParentBottom="true"
         android:layout_toStartOf="@+id/stop" />
 
